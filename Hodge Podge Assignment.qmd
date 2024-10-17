@@ -1,0 +1,244 @@
+---
+title: "Hodge Podge Assignment"
+author: "Isaac Dobes"
+format: html
+editor: visual
+---
+
+## Task 1: Conceptual Questions
+
+1.  `lapply()` applies a function (specified in the `FUN` argument of `lapply()`) to each object in a list.
+2.  The code would be `lapply(my_list, FUN = cor, method = "kendall")`.
+3.  The advantage to using `purr` functions over the `BaseR` apply family is that the `purr` functions are written with a more consistent syntax, and additionally the `purr` package has some useful helper functions that `BaseR` lacks.
+4.  A side-effect function produces or changes something outside its parameters, in addition to returning a value/object, thus impacting the overall programming environment. This is in contrast to a transformation function, which only manipulates the data it is given and does not change any external state. Examples of side-effect functions include `print()` and `plot()`.
+5.  This is because a function has its own local environment. Whatever variables we name in the local function environment will not exist in the greater global environment with the other code, so that is why we do not run into any inconsistencies.
+
+## Task 2: Writing R Functions
+
+1.  The code for the Root Mean Square Error is given by:
+
+    ```{r}
+    getRMSE <- function(x, y, ...) {
+      if (length(x) != length(y)) {
+        stop("Length of (vector) inputs must be the same.")
+      }
+      else {
+        z <- c()
+        for (i in 1:length(x)) {
+          z[i] <- (x[i] - y[i])^2
+        }
+        RMSE <- sqrt(mean(z, ...))
+      return (RMSE) 
+      }
+    }
+    ```
+
+2.  First, we run the given code to create some response values and predictions:
+
+    ```{r}
+    set.seed(10)
+    n <- 100
+    x <- runif(n)
+    resp <- 3 + 10 * x + rnorm(n)
+    pred <- predict(lm(resp ~ x), data.frame(x))
+    ```
+
+    Now, we test our `getRMSE()` function using this data:
+
+    ```{r}
+    getRMSE(resp, pred)
+    ```
+
+    That seems to have worked. Next, we will further test our `getRMSE()` function by replacing two of the response values with missing values:
+
+    ```{r}
+    resp[1] <- NA_real_
+    resp[2] <- NA_real_
+
+    #if we don't specify how to deal with missing values, we get 'NA'
+    getRMSE(resp, pred)
+
+    #but if we add the argument na.rm = TRUE (i.e. remove NA values)
+    #then we get a valid answer for the RMSE of resp and pred
+    getRMSE(resp, pred, na.rm = TRUE)
+    ```
+
+3.  The code for the `MAE()` function is given below:
+
+    ```{r}
+    getMAE <- function(x, y, ...) {
+      if (length(x) != length(y)) {
+        stop("Length of (vector) inputs must be the same.")
+      }
+      else {
+        z <- c()
+        for (i in 1:length(x)) {
+          z[i] <- abs(x[i] - y[i])
+        }
+        MAE <- mean(z, ...)
+      return (MAE) 
+      }
+    }
+    ```
+
+4.  First, we run the following code to create response values and predictions:
+
+    ```{r}
+    set.seed(10)
+    n <- 100
+    x <- runif(n)
+    resp <- 3 + 10 * x + rnorm(n)
+    pred <- predict(lm(resp ~ x), data.frame(x))
+    ```
+
+    Now we test our `getMAE()` function using this data:
+
+    ```{r}
+    getMAE(resp, pred)
+    ```
+
+    That seems to have worked. Next, we further test our `getMAE()` function by replacing two of the response values with missing values:
+
+    ```{r}
+    resp[1] <- NA_real_
+    resp[2] <- NA_real_
+
+    #if we don't specify how to deal with missing values, we get 'NA'
+    getMAE(resp, pred)
+
+    #but if we add the argument na.rm = TRUE (i.e. remove NA values)
+    #then we get a valid answer for the MAE of resp and pred
+    getRMSE(resp, pred, na.rm = TRUE)
+    ```
+
+5.  Next we create a wrapper function which can be used to get either or both of the above metrics:
+
+    ```{r}
+    getMetrics <- function(x, y, metrics = "both", ...) {
+      if (is.vector(x) == FALSE | is.vector(y) == FALSE) {
+        stop("Inputs must be numeric vectors of equal length.")
+      }
+      else if (is.numeric(x) == FALSE | is.numeric(y) == FALSE) {
+        stop("Inputs must be numeric vectors of equal length.")
+      }
+      else if (length(x) != length(y)) {
+        stop("Inputs must be numeric vectors of equal length.")
+      }
+      else{
+        if (metrics == "both") {
+          return (list("RMSE:" = getRMSE(x, y, ...), "MAE:" = getMAE(x, y, 
+                                                                      ...)))
+        }
+        else if (metrics == "RMSE") {
+          return (list("RMSE:" = getRMSE(x, y, ...)))
+        }
+        else if (metrics  == "MAE") {
+          return (list("MAE:" = getMAE(x, y, ...)))
+        }
+        else {
+          stop("Unknown metric.")
+        }
+      }
+    }
+    ```
+
+6.  First, we run the following code to create response values and predictions:
+
+    ```{r}
+    set.seed(10)
+    n <- 100
+    x <- runif(n)
+    resp <- 3 + 10 * x + rnorm(n)
+    pred <- predict(lm(resp ~ x), data.frame(x))
+    ```
+
+    Now we test our `getMetrics()` function using this data:
+
+    ```{r}
+    #return both metrics
+    getMetrics(resp, pred)
+    ```
+
+    ```{r}
+    #return only RMSE metric
+    getMetrics(resp, pred, metrics = "RMSE")
+    ```
+
+    ```{r}
+    #return only MAE metric
+    getMetrics(resp, pred, metrics = "MAE")
+    ```
+
+    That seems to have worked. Next, we further test our `getMetrics()` function by replacing two of the response values with missing values:
+
+    ```{r}
+    resp[1] <- NA_real_
+    resp[2] <- NA_real_
+
+    #if we don't specify how to deal with missing values, we get 'NA'
+    getMetrics(resp, pred)
+
+    #but if we add the argument na.rm = TRUE (i.e. remove NA values)
+    #then we get a valid answer for the RMSE and MAE of resp and pred
+    getMetrics(resp, pred, na.rm = TRUE)
+    ```
+
+    ```{r}
+    #similarly, if we don't specify how to deal with missing values 
+    #we get 'NA'
+    getMetrics(resp, pred, metrics = "RMSE")
+
+    #but if we add the argument na.rm = TRUE (i.e. remove NA values)
+    #then we get a valid answer for the RMSE of resp and pred
+    getMetrics(resp, pred, metrics = "RMSE", na.rm = TRUE)
+    ```
+
+    ```{r}
+    #similarly, if we don't specify how to deal with missing values 
+    #we get 'NA'
+    getMetrics(resp, pred, metrics = "MAE")
+
+    #but if we add the argument na.rm = TRUE (i.e. remove NA values)
+    #then we get a valid answer for the MAE of resp and pred
+    getMetrics(resp, pred, metrics = "MAE", na.rm = TRUE)
+    ```
+
+    Lastly, lets pass a data frame to the `getMetrics()` function to check that it will tell us our input is invalid:
+
+    ```{r}
+    #| error: TRUE
+    df1 <- data.frame(resp, pred)
+    df2 <- data.frame(pred, resp)
+    getMetrics(df1, df2, na.rm = TRUE)
+    ```
+
+## Task 3: Querying an API and a Tidy-Style Function
+
+1.  In this task we are going to query the news API from newsapi.org. One interesting piece of data that they have is called "Top business headlines in the US right now," so we'll query that.
+
+    ```{r}
+    url <- "https://newsapi.org/v2/top-headlines?country=us&category=business&apiKey=7a1ff6590573438a818fad1e9f383454"
+
+    business_headlines <- httr::GET(url)
+    ```
+
+2.  Next we parse what is returned and obtain a data frame with the article information.
+
+    ```{r}
+    library(jsonlite)
+    library(tibble)
+
+    parsed <- fromJSON(rawToChar(business_headlines$content))
+    business_headlines <- as_tibble(parsed$articles)
+    business_headlines
+    ```
+
+    Next we use the `pluck()` function from `purrr` to grab the `source` element.
+
+    ```{r}
+    library(purrr)
+
+    pluck(business_headlines, "source")
+    ```
+
+3.  
